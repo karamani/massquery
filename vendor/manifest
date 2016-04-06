@@ -1,0 +1,29 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/codegangsta/cli",
+			"repository": "https://github.com/codegangsta/cli",
+			"revision": "71f57d300dd6a780ac1856c005c4b518cfd498ec",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/go-sql-driver/mysql",
+			"repository": "https://github.com/go-sql-driver/mysql",
+			"revision": "1421caf44f6464fd2ee8de694c7508ee13f92964",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/karamani/iostreams",
+			"repository": "https://github.com/karamani/iostreams",
+			"revision": "1f6c76b5ac3d8f137055c90ce32630aa0b013dd5",
+			"branch": "master"
+		},
+		{
+			"importpath": "gopkg.in/yaml.v2",
+			"repository": "https://gopkg.in/yaml.v2",
+			"revision": "a83829b6f1293c91addabc89d0571c246397bbf4",
+			"branch": "v2"
+		}
+	]
+}
