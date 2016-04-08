@@ -13,8 +13,11 @@ import (
 )
 
 var (
-	debugMode bool
-	queryArg  string
+	debugMode           bool
+	queryArg            string
+	connectionStringArg string
+	throughMode         bool
+	fakeMode            bool
 )
 
 func main() {
@@ -33,6 +36,21 @@ func main() {
 			Usage:       "sql-query",
 			Destination: &queryArg,
 		},
+		cli.StringFlag{
+			Name:        "cnn",
+			Usage:       "db connection string",
+			Destination: &connectionStringArg,
+		},
+		cli.BoolFlag{
+			Name:        "through",
+			Usage:       "through mode",
+			Destination: &throughMode,
+		},
+		cli.BoolFlag{
+			Name:        "fake",
+			Usage:       "fake mode",
+			Destination: &fakeMode,
+		},
 	}
 
 	app.Action = func(c *cli.Context) {
@@ -40,19 +58,45 @@ func main() {
 		// this func's called for each stdin's row
 		process := func(row []byte) error {
 
+			var (
+				connectionString string
+				resPrefix        string
+			)
+
 			debug(string(row))
 
 			params := strings.Split(string(row), "\t")
-			if len(params) < 2 {
+			if len(connectionStringArg) == 0 && len(params) < 2 {
 				log.Printf("[ERROR] Не хватает параметров в stdin. Нужно минимум 2. Получено %d\n", len(params))
 			}
 
-			res, err := runQuery(params[1], c.String("query"))
+			if len(connectionStringArg) > 0 {
+				connectionString = connectionStringArg
+			} else {
+				connectionString = params[1]
+			}
+
+			query := c.String("query")
+
+			for i, param := range params {
+				paramTpl := fmt.Sprintf("{%d}", i+1)
+				query = strings.Replace(query, paramTpl, param, -1)
+			}
+
+			debug(query)
+
+			if throughMode {
+				resPrefix = string(row)
+			} else {
+				resPrefix = params[0]
+			}
+
+			res, err := runQuery(connectionString, query)
 			if err != nil {
-				fmt.Printf(os.Stdout, "%s\terror\t\n", params[0])
+				fmt.Printf(resPrefix + "\terror\t\n")
 				log.Println(err.Error())
 			} else {
-				fmt.Printf("%s\tsuccess\t%s\n", params[0], res)
+				fmt.Printf(resPrefix+"\tsuccess\t%s\n", res)
 			}
 			return nil
 		}
@@ -80,6 +124,10 @@ func runQuery(connectionString, query string) (string, error) {
 	err = db.Ping()
 	if err != nil {
 		return "", err
+	}
+
+	if fakeMode {
+		return "", nil
 	}
 
 	rows, err := db.Query(query)
