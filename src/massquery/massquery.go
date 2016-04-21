@@ -39,6 +39,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "cnn",
 			Usage:       "db connection string",
+			EnvVar:      "MASSQUERY_CNN",
 			Destination: &connectionStringArg,
 		},
 		cli.BoolFlag{
