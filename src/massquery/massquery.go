@@ -16,7 +16,7 @@ var (
 	debugMode           bool
 	queryArg            string
 	connectionStringArg string
-	throughMode         bool
+	formatArg           string
 	fakeMode            bool
 )
 
@@ -42,10 +42,10 @@ func main() {
 			EnvVar:      "MASSQUERY_CNN",
 			Destination: &connectionStringArg,
 		},
-		cli.BoolFlag{
-			Name:        "through",
-			Usage:       "through mode",
-			Destination: &throughMode,
+		cli.StringFlag{
+			Name:        "format",
+			Usage:       "output format",
+			Destination: &formatArg,
 		},
 		cli.BoolFlag{
 			Name:        "fake",
@@ -59,10 +59,7 @@ func main() {
 		// this func's called for each stdin's row
 		process := func(row []byte) error {
 
-			var (
-				connectionString string
-				resPrefix        string
-			)
+			var connectionString string
 
 			debug(string(row))
 
@@ -86,18 +83,25 @@ func main() {
 
 			debug(query)
 
-			if throughMode {
-				resPrefix = string(row)
-			} else {
-				resPrefix = params[0]
-			}
-
+			status := "success"
 			res, err := runQuery(connectionString, query)
 			if err != nil {
-				fmt.Printf(resPrefix + "\terror\t\n")
+				status = "error"
 				log.Println(err.Error())
+			}
+
+			if len(formatArg) > 0 {
+				res := formatArg
+				res = strings.Replace(res, "\\t", "\t", -1) // лишнее экранирование при получении аргумента программы
+				res = strings.Replace(res, "\\n", "\n", -1) // лишнее экранирование при получении аргумента программы
+				res = strings.Replace(res, "{input}", string(row), -1)
+				res = strings.Replace(res, "{res}", res, -1)
+				res = strings.Replace(res, "{id}", params[0], -1)
+				res = strings.Replace(res, "{cnn}", connectionString, -1)
+				res = strings.Replace(res, "{status}", status, -1)
+				fmt.Println(res)
 			} else {
-				fmt.Printf(resPrefix+"\tsuccess\t%s\n", res)
+				fmt.Printf(params[0]+"\t"+status+"\t%s\n", res)
 			}
 			return nil
 		}
