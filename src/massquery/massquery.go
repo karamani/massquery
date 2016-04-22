@@ -56,28 +56,43 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 
+		connectionString := connectionStringArg
+		queryArg := c.String("query")
+
+		if !iostreams.StdinReady() {
+			res, err := runQuery(connectionString, queryArg)
+			if err != nil {
+				log.Println(err.Error())
+				printRes(formatArg, "", "", connectionString, "error", "")
+			} else {
+				debug("%#v", res)
+				for _, resrow := range res {
+					s := strings.Join(resrow, "\t")
+					printRes(formatArg, "", "", connectionString, "success", s)
+				}
+			}
+			return
+		}
+
 		// this func's called for each stdin's row
 		process := func(row []byte) error {
-
-			var connectionString string
 
 			debug(string(row))
 
 			params := strings.Split(string(row), "\t")
+
 			if len(connectionStringArg) == 0 && len(params) < 2 {
 				log.Printf("[ERROR] Не хватает параметров в stdin. Нужно минимум 2. Получено %d\n", len(params))
+				return nil
 			}
 
-			if len(connectionStringArg) > 0 {
-				connectionString = connectionStringArg
-			} else {
+			if len(connectionStringArg) == 0 {
 				connectionString = params[1]
 			}
 
-			query := c.String("query")
-
+			query := queryArg
 			for i, param := range params {
-				paramTpl := fmt.Sprintf("{%d}", i+1)
+				paramTpl := fmt.Sprintf("{%d}", i)
 				query = strings.Replace(query, paramTpl, param, -1)
 			}
 
@@ -88,26 +103,18 @@ func main() {
 			if err != nil {
 				status = "error"
 				log.Println(err.Error())
+				printRes(formatArg, string(row), params[0], connectionString, status, "")
 			}
 
-			if len(formatArg) > 0 {
-				res := formatArg
-				res = strings.Replace(res, "\\t", "\t", -1) // лишнее экранирование при получении аргумента программы
-				res = strings.Replace(res, "\\n", "\n", -1) // лишнее экранирование при получении аргумента программы
-				res = strings.Replace(res, "{input}", string(row), -1)
-				res = strings.Replace(res, "{res}", res, -1)
-				res = strings.Replace(res, "{id}", params[0], -1)
-				res = strings.Replace(res, "{cnn}", connectionString, -1)
-				res = strings.Replace(res, "{status}", status, -1)
-				fmt.Println(res)
-			} else {
-				fmt.Printf(params[0]+"\t"+status+"\t%s\n", res)
+			for _, resrow := range res {
+				s := strings.Join(resrow, "\t")
+				printRes(formatArg, string(row), params[0], connectionString, status, s)
 			}
+
 			return nil
 		}
 
-		err := iostreams.ProcessStdin(process)
-		if err != nil {
+		if err := iostreams.ProcessStdin(process); err != nil {
 			log.Panicln(err.Error())
 		}
 	}
@@ -115,40 +122,75 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runQuery(connectionString, query string) (string, error) {
+func printRes(format, input, id, cnn, status, res string) {
+	if len(format) > 0 {
+		s := format
+		s = strings.Replace(s, "\\t", "\t", -1) // лишнее экранирование при получении аргумента программы
+		s = strings.Replace(s, "\\n", "\n", -1) // лишнее экранирование при получении аргумента программы
+		s = strings.Replace(s, "{input}", input, -1)
+		s = strings.Replace(s, "{res}", res, -1)
+		s = strings.Replace(s, "{id}", id, -1)
+		s = strings.Replace(s, "{cnn}", cnn, -1)
+		s = strings.Replace(s, "{status}", status, -1)
+		fmt.Println(s)
+	} else {
+		fmt.Printf("%s\t%s\t%s\n", id, status, res)
+	}
+}
 
-	var res string
+func runQuery(connectionString, query string) ([][]string, error) {
+
+	var (
+		res       [][]string
+		container []string
+		pointers  []interface{}
+	)
 
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		log.Println(err.Error())
-		return "", err
+		return nil, err
 	}
 	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if fakeMode {
-		return "", nil
+		return nil, nil
 	}
 
 	rows, err := db.Query(query)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		if err := rows.Scan(&res); err != nil {
-			return "", err
-		}
-		break
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
 	}
+
+	colsCount := len(cols)
+
+	for rows.Next() {
+
+		pointers = make([]interface{}, colsCount)
+		container = make([]string, colsCount)
+		for i, _ := range pointers {
+			pointers[i] = &container[i]
+		}
+
+		if err := rows.Scan(pointers...); err != nil {
+			return nil, err
+		}
+		res = append(res, container)
+	}
+
 	if err := rows.Err(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return res, nil
