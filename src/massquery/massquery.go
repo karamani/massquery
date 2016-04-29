@@ -15,9 +15,11 @@ import (
 var (
 	debugMode           bool
 	queryArg            string
+	execArg             string
 	connectionStringArg string
 	formatArg           string
 	fakeMode            bool
+	isExec              bool
 )
 
 func main() {
@@ -35,6 +37,11 @@ func main() {
 			Name:        "query",
 			Usage:       "sql-query",
 			Destination: &queryArg,
+		},
+		cli.StringFlag{
+			Name:        "exec",
+			Usage:       "exec-string (insert, update or delete)",
+			Destination: &execArg,
 		},
 		cli.StringFlag{
 			Name:        "cnn",
@@ -57,7 +64,15 @@ func main() {
 	app.Action = func(c *cli.Context) {
 
 		connectionString := connectionStringArg
-		queryArg := c.String("query")
+
+		query := queryArg
+		isExec = false
+		if len(query) == 0 {
+			query = execArg
+			isExec = true
+		}
+
+		debug("%#v", isExec)
 
 		if !iostreams.StdinReady() {
 			res, err := runQuery(connectionString, queryArg)
@@ -90,16 +105,16 @@ func main() {
 				connectionString = params[1]
 			}
 
-			query := queryArg
+			rowQuery := query
 			for i, param := range params {
 				paramTpl := fmt.Sprintf("{%d}", i)
-				query = strings.Replace(query, paramTpl, param, -1)
+				rowQuery = strings.Replace(rowQuery, paramTpl, param, -1)
 			}
 
-			debug(query)
+			debug(rowQuery)
 
 			status := "success"
-			res, err := runQuery(connectionString, query)
+			res, err := runQuery(connectionString, rowQuery)
 			if err != nil {
 				status = "error"
 				log.Println(err.Error())
