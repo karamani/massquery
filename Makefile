@@ -1,5 +1,5 @@
 configure:
-	gb vendor update --all
+	gb vendor restore --all
 
 build:
 	gofmt -w src/massquery
