@@ -63,27 +63,32 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 
-		connectionString := connectionStringArg
+		if len(connectionStringArg) == 0 {
+			log.Println("[ERROR] 'cnn' arg is required")
+			return
+		}
+
+		if len(queryArg) == 0 && len(execArg) == 0 {
+			log.Println("[ERROR] It should be one of the arguments: 'query' or 'exec'")
+			return
+		}
 
 		query := queryArg
-		isExec = false
-		if len(query) == 0 {
+		isExec = len(query) == 0
+		if isExec {
 			query = execArg
-			isExec = true
 		}
 
 		debug("%#v", isExec)
-
 		if !iostreams.StdinReady() {
-			res, err := runQuery(connectionString, queryArg)
+			res, err := runQuery(connectionStringArg, queryArg)
 			if err != nil {
 				log.Println(err.Error())
-				printRes(formatArg, "", "", connectionString, "error", "")
+				printRes(formatArg, "", "", connectionStringArg, "error", nil)
 			} else {
 				debug("%#v", res)
 				for _, resrow := range res {
-					s := strings.Join(resrow, "\t")
-					printRes(formatArg, "", "", connectionString, "success", s)
+					printRes(formatArg, "", "", connectionStringArg, "success", resrow)
 				}
 			}
 			return
@@ -96,34 +101,27 @@ func main() {
 
 			params := strings.Split(string(row), "\t")
 
-			if len(connectionStringArg) == 0 && len(params) < 2 {
-				log.Printf("[ERROR] Не хватает параметров в stdin. Нужно минимум 2. Получено %d\n", len(params))
-				return nil
-			}
-
-			if len(connectionStringArg) == 0 {
-				connectionString = params[1]
-			}
-
 			rowQuery := query
+			rowCnn := connectionStringArg
 			for i, param := range params {
-				paramTpl := fmt.Sprintf("{%d}", i)
-				rowQuery = strings.Replace(rowQuery, paramTpl, param, -1)
+				tpl := fmt.Sprintf("{%d}", i)
+				rowQuery = strings.Replace(rowQuery, tpl, param, -1)
+				rowCnn = strings.Replace(rowCnn, tpl, param, -1)
 			}
 
 			debug(rowQuery)
+			debug(rowCnn)
 
 			status := "success"
-			res, err := runQuery(connectionString, rowQuery)
+			res, err := runQuery(rowCnn, rowQuery)
 			if err != nil {
 				status = "error"
 				log.Println(err.Error())
-				printRes(formatArg, string(row), params[0], connectionString, status, "")
+				printRes(formatArg, string(row), params[0], rowCnn, status, nil)
 			}
 
 			for _, resrow := range res {
-				s := strings.Join(resrow, "\t")
-				printRes(formatArg, string(row), params[0], connectionString, status, s)
+				printRes(formatArg, string(row), params[0], rowCnn, status, resrow)
 			}
 
 			return nil
@@ -137,19 +135,27 @@ func main() {
 	app.Run(os.Args)
 }
 
-func printRes(format, input, id, cnn, status, res string) {
+func printRes(format, input, id, cnn, status string, res []string) {
+
+	resString := strings.Join(res, "\t")
+
 	if len(format) > 0 {
 		s := format
-		s = strings.Replace(s, "\\t", "\t", -1) // лишнее экранирование при получении аргумента программы
-		s = strings.Replace(s, "\\n", "\n", -1) // лишнее экранирование при получении аргумента программы
+		s = strings.Replace(s, "\\t", "\t", -1) // unnecessary quotes from command line
+		s = strings.Replace(s, "\\n", "\n", -1) // unnecessary quotes from command line
 		s = strings.Replace(s, "{input}", input, -1)
-		s = strings.Replace(s, "{res}", res, -1)
-		s = strings.Replace(s, "{id}", id, -1)
+		s = strings.Replace(s, "{res}", resString, -1)
 		s = strings.Replace(s, "{cnn}", cnn, -1)
 		s = strings.Replace(s, "{status}", status, -1)
+		for i, r := range res {
+			tpl := fmt.Sprintf("{res%d}", i)
+			s = strings.Replace(s, tpl, r, -1)
+		}
 		fmt.Println(s)
 	} else {
-		fmt.Printf("%s\t%s\t%s\n", id, status, res)
+		if len(resString) > 0 {
+			fmt.Println(resString)
+		}
 	}
 }
 
