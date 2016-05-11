@@ -102,17 +102,11 @@ func main() {
 			debug(string(row))
 
 			params := strings.Split(string(row), "\t")
+			rowQuery := parameterizedString(query, params)
+			rowCnn := parameterizedString(connectionStringArg, params)
 
-			rowQuery := query
-			rowCnn := connectionStringArg
-			for i, param := range params {
-				tpl := fmt.Sprintf("{%d}", i)
-				rowQuery = strings.Replace(rowQuery, tpl, param, -1)
-				rowCnn = strings.Replace(rowCnn, tpl, param, -1)
-			}
-
-			debug(rowQuery)
-			debug(rowCnn)
+			debug("connection:" + rowCnn)
+			debug("query:" + rowQuery)
 
 			status := "success"
 			res, err := runQuery(rowCnn, rowQuery, isExec)
@@ -135,6 +129,15 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+func parameterizedString(s string, params []string) (res string) {
+	res = s
+	for i, param := range params {
+		tpl := fmt.Sprintf("{%d}", i)
+		res = strings.Replace(res, tpl, param, -1)
+	}
+	return
 }
 
 func printRes(format, input, id, cnn, status string, res []string) {
@@ -161,82 +164,93 @@ func printRes(format, input, id, cnn, status string, res []string) {
 	}
 }
 
-func runQuery(connectionString, query string, isExec bool) ([][]string, error) {
+func runQuery(connectionString, query string, isExec bool) (res [][]string, resErr error) {
 
-	var (
-		res       [][]string
-		container []string
-		pointers  []interface{}
-	)
+	res, resErr = nil, nil
 
-	db, err := sql.Open("mysql", connectionString)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, err
+	db, resErr := sql.Open("mysql", connectionString)
+	if resErr != nil {
+		log.Println(resErr.Error())
+		return
 	}
 	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
-		return nil, err
+	resErr = db.Ping()
+	if resErr != nil {
+		return
 	}
 
 	if fakeMode {
-		return nil, nil
+		return
 	}
 
 	if isExec {
-		execRes, err := db.Exec(query)
-		if err != nil {
-			return nil, err
-		}
-		affected, err := execRes.RowsAffected()
-		if err != nil {
-			return nil, err
-		}
-		lastInsertId, err := execRes.LastInsertId()
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, []string{
-			strconv.FormatInt(affected, 10),
-			strconv.FormatInt(lastInsertId, 10),
-		})
+
+		resErr = func() error {
+			execRes, err := db.Exec(query)
+			if err != nil {
+				return err
+			}
+			affected, err := execRes.RowsAffected()
+			if err != nil {
+				return err
+			}
+			lastInsertId, err := execRes.LastInsertId()
+			if err != nil {
+				return err
+			}
+			res = append(res, []string{
+				strconv.FormatInt(affected, 10),
+				strconv.FormatInt(lastInsertId, 10),
+			})
+			return nil
+		}()
+
 	} else {
 
-		rows, err := db.Query(query)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
+		resErr = func() error {
 
-		cols, err := rows.Columns()
-		if err != nil {
-			return nil, err
-		}
+			var (
+				container []string
+				pointers  []interface{}
+			)
 
-		colsCount := len(cols)
+			rows, err := db.Query(query)
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
 
-		for rows.Next() {
-
-			pointers = make([]interface{}, colsCount)
-			container = make([]string, colsCount)
-			for i, _ := range pointers {
-				pointers[i] = &container[i]
+			cols, err := rows.Columns()
+			if err != nil {
+				return err
 			}
 
-			if err := rows.Scan(pointers...); err != nil {
-				return nil, err
-			}
-			res = append(res, container)
-		}
+			colsCount := len(cols)
 
-		if err := rows.Err(); err != nil {
-			return nil, err
-		}
+			for rows.Next() {
+
+				pointers = make([]interface{}, colsCount)
+				container = make([]string, colsCount)
+				for i, _ := range pointers {
+					pointers[i] = &container[i]
+				}
+
+				if err := rows.Scan(pointers...); err != nil {
+					return err
+				}
+				res = append(res, container)
+			}
+
+			if err := rows.Err(); err != nil {
+				res = nil
+				return err
+			}
+			return nil
+		}()
 	}
 
-	return res, nil
+	return
 }
 
 func debug(format string, args ...interface{}) {
