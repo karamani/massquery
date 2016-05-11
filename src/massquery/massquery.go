@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/codegangsta/cli"
@@ -80,8 +81,9 @@ func main() {
 		}
 
 		debug("%#v", isExec)
+
 		if !iostreams.StdinReady() {
-			res, err := runQuery(connectionStringArg, queryArg)
+			res, err := runQuery(connectionStringArg, queryArg, isExec)
 			if err != nil {
 				log.Println(err.Error())
 				printRes(formatArg, "", "", connectionStringArg, "error", nil)
@@ -113,7 +115,7 @@ func main() {
 			debug(rowCnn)
 
 			status := "success"
-			res, err := runQuery(rowCnn, rowQuery)
+			res, err := runQuery(rowCnn, rowQuery, isExec)
 			if err != nil {
 				status = "error"
 				log.Println(err.Error())
@@ -159,7 +161,7 @@ func printRes(format, input, id, cnn, status string, res []string) {
 	}
 }
 
-func runQuery(connectionString, query string) ([][]string, error) {
+func runQuery(connectionString, query string, isExec bool) ([][]string, error) {
 
 	var (
 		res       [][]string
@@ -183,35 +185,55 @@ func runQuery(connectionString, query string) ([][]string, error) {
 		return nil, nil
 	}
 
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-
-	colsCount := len(cols)
-
-	for rows.Next() {
-
-		pointers = make([]interface{}, colsCount)
-		container = make([]string, colsCount)
-		for i, _ := range pointers {
-			pointers[i] = &container[i]
-		}
-
-		if err := rows.Scan(pointers...); err != nil {
+	if isExec {
+		execRes, err := db.Exec(query)
+		if err != nil {
 			return nil, err
 		}
-		res = append(res, container)
-	}
+		affected, err := execRes.RowsAffected()
+		if err != nil {
+			return nil, err
+		}
+		lastInsertId, err := execRes.LastInsertId()
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, []string{
+			strconv.FormatInt(affected, 10),
+			strconv.FormatInt(lastInsertId, 10),
+		})
+	} else {
 
-	if err := rows.Err(); err != nil {
-		return nil, err
+		rows, err := db.Query(query)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		cols, err := rows.Columns()
+		if err != nil {
+			return nil, err
+		}
+
+		colsCount := len(cols)
+
+		for rows.Next() {
+
+			pointers = make([]interface{}, colsCount)
+			container = make([]string, colsCount)
+			for i, _ := range pointers {
+				pointers[i] = &container[i]
+			}
+
+			if err := rows.Scan(pointers...); err != nil {
+				return nil, err
+			}
+			res = append(res, container)
+		}
+
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
