@@ -102,22 +102,20 @@ func main() {
 			debug(string(row))
 
 			params := strings.Split(string(row), "\t")
-			rowQuery := parameterizedString(query, params)
-			rowCnn := parameterizedString(connectionStringArg, params)
+			rowQuery := parameterizedString(query, "{%d}", params)
+			rowCnn := parameterizedString(connectionStringArg, "{%d}", params)
 
 			debug("connection:" + rowCnn)
 			debug("query:" + rowQuery)
 
-			status := "success"
 			res, err := runQuery(rowCnn, rowQuery, isExec)
 			if err != nil {
-				status = "error"
 				log.Println(err.Error())
-				printRes(formatArg, string(row), params[0], rowCnn, status, nil)
+				printRes(formatArg, string(row), params[0], rowCnn, "error", nil)
 			}
 
 			for _, resrow := range res {
-				printRes(formatArg, string(row), params[0], rowCnn, status, resrow)
+				printRes(formatArg, string(row), params[0], rowCnn, "success", resrow)
 			}
 
 			return nil
@@ -131,11 +129,11 @@ func main() {
 	app.Run(os.Args)
 }
 
-func parameterizedString(s string, params []string) (res string) {
+func parameterizedString(s, tpl string, params []string) (res string) {
 	res = s
 	for i, param := range params {
-		tpl := fmt.Sprintf("{%d}", i)
-		res = strings.Replace(res, tpl, param, -1)
+		t := fmt.Sprintf(tpl, i)
+		res = strings.Replace(res, t, param, -1)
 	}
 	return
 }
@@ -152,10 +150,7 @@ func printRes(format, input, id, cnn, status string, res []string) {
 		s = strings.Replace(s, "{res}", resString, -1)
 		s = strings.Replace(s, "{cnn}", cnn, -1)
 		s = strings.Replace(s, "{status}", status, -1)
-		for i, r := range res {
-			tpl := fmt.Sprintf("{res%d}", i)
-			s = strings.Replace(s, tpl, r, -1)
-		}
+		s = parameterizedString(s, "{res%d}", res)
 		fmt.Println(s)
 	} else {
 		if len(resString) > 0 {
@@ -211,8 +206,9 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 		resErr = func() error {
 
 			var (
-				container []string
+				container []sql.RawBytes
 				pointers  []interface{}
+				values    []string
 			)
 
 			rows, err := db.Query(query)
@@ -231,7 +227,7 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 			for rows.Next() {
 
 				pointers = make([]interface{}, colsCount)
-				container = make([]string, colsCount)
+				container = make([]sql.RawBytes, colsCount)
 				for i, _ := range pointers {
 					pointers[i] = &container[i]
 				}
@@ -239,7 +235,16 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 				if err := rows.Scan(pointers...); err != nil {
 					return err
 				}
-				res = append(res, container)
+
+				values = make([]string, colsCount)
+				for i, elem := range container {
+					values[i] = ""
+					if elem != nil {
+						values[i] = string(elem)
+					}
+				}
+
+				res = append(res, values)
 			}
 
 			if err := rows.Err(); err != nil {
