@@ -80,19 +80,8 @@ func main() {
 			query = execArg
 		}
 
-		debug("%#v", isExec)
-
 		if !iostreams.StdinReady() {
-			res, err := runQuery(connectionStringArg, queryArg, isExec)
-			if err != nil {
-				log.Println(err.Error())
-				printRes(formatArg, "", "", connectionStringArg, "error", nil)
-			} else {
-				debug("%#v", res)
-				for _, resrow := range res {
-					printRes(formatArg, "", "", connectionStringArg, "success", resrow)
-				}
-			}
+			processOneQuery(connectionStringArg, query, isExec, "")
 			return
 		}
 
@@ -108,15 +97,7 @@ func main() {
 			debug("connection:" + rowCnn)
 			debug("query:" + rowQuery)
 
-			res, err := runQuery(rowCnn, rowQuery, isExec)
-			if err != nil {
-				log.Println(err.Error())
-				printRes(formatArg, string(row), params[0], rowCnn, "error", nil)
-			}
-
-			for _, resrow := range res {
-				printRes(formatArg, string(row), params[0], rowCnn, "success", resrow)
-			}
+			processOneQuery(rowCnn, rowQuery, isExec, string(row))
 
 			return nil
 		}
@@ -129,6 +110,18 @@ func main() {
 	app.Run(os.Args)
 }
 
+func processOneQuery(cnn, query string, isExec bool, input string) {
+	res, err := runQuery(cnn, query, isExec)
+	if err != nil {
+		log.Println(err.Error())
+		printRes(formatArg, input, cnn, "error", nil)
+	} else {
+		for _, resrow := range res {
+			printRes(formatArg, input, cnn, "success", resrow)
+		}
+	}
+}
+
 func parameterizedString(s, tpl string, params []string) (res string) {
 	res = s
 	for i, param := range params {
@@ -138,7 +131,7 @@ func parameterizedString(s, tpl string, params []string) (res string) {
 	return
 }
 
-func printRes(format, input, id, cnn, status string, res []string) {
+func printRes(format, input, cnn, status string, res []string) {
 
 	resString := strings.Join(res, "\t")
 
