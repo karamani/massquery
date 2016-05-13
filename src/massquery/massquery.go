@@ -183,13 +183,13 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 			if err != nil {
 				return err
 			}
-			lastInsertId, err := execRes.LastInsertId()
+			lastInsertID, err := execRes.LastInsertId()
 			if err != nil {
 				return err
 			}
 			res = append(res, []string{
 				strconv.FormatInt(affected, 10),
-				strconv.FormatInt(lastInsertId, 10),
+				strconv.FormatInt(lastInsertID, 10),
 			})
 			return nil
 		}()
@@ -221,7 +221,7 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 
 				pointers = make([]interface{}, colsCount)
 				container = make([]sql.RawBytes, colsCount)
-				for i, _ := range pointers {
+				for i := range pointers {
 					pointers[i] = &container[i]
 				}
 
