@@ -114,10 +114,10 @@ func processOneQuery(cnn, query string, isExec bool, input string) {
 	res, err := runQuery(cnn, query, isExec)
 	if err != nil {
 		log.Println(err.Error())
-		printRes(formatArg, input, cnn, "error", nil)
+		printRes(formatRes(formatArg, input, cnn, "error", nil))
 	} else {
 		for _, resrow := range res {
-			printRes(formatArg, input, cnn, "success", resrow)
+			printRes(formatRes(formatArg, input, cnn, "success", resrow))
 		}
 	}
 }
@@ -131,24 +131,32 @@ func parameterizedString(s, tpl string, params []string) (res string) {
 	return
 }
 
-func printRes(format, input, cnn, status string, res []string) {
+func formatRes(format, input, cnn, status string, values []string) (res string) {
 
-	resString := strings.Join(res, "\t")
+	res = strings.Join(values, "\t")
 
 	if len(format) > 0 {
 		s := format
-		s = strings.Replace(s, "\\t", "\t", -1) // unnecessary quotes from command line
-		s = strings.Replace(s, "\\n", "\n", -1) // unnecessary quotes from command line
+
+		// remove unnecessary quotes from command line
+		s = strings.Replace(s, "\\t", "\t", -1)
+		s = strings.Replace(s, "\\n", "\n", -1)
+
 		s = strings.Replace(s, "{input}", input, -1)
-		s = strings.Replace(s, "{res}", resString, -1)
+		s = strings.Replace(s, "{res}", res, -1)
 		s = strings.Replace(s, "{cnn}", cnn, -1)
 		s = strings.Replace(s, "{status}", status, -1)
-		s = parameterizedString(s, "{res%d}", res)
+		s = parameterizedString(s, "{res%d}", values)
+
+		res = s
+	}
+
+	return
+}
+
+func printRes(s string) {
+	if len(s) > 0 {
 		fmt.Println(s)
-	} else {
-		if len(resString) > 0 {
-			fmt.Println(resString)
-		}
 	}
 }
 
