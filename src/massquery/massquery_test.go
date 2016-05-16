@@ -33,7 +33,8 @@ func TestFormatRes(t *testing.T) {
 	}{
 		{"", "", "", "success", []string{"param0", "param1"}, "param0\tparam1"},
 		{"{status}|{res}", "", "", "success", []string{"param0", "param1"}, "success|param0\tparam1"},
-		{"{status}|{res2};{res1};{res0}", "", "", "success", []string{"param0", "param1"}, "success|{res2};param1;param0"},
+		{"{res2};{res1};{res0}", "", "", "", []string{"param0", "param1"}, "{res2};param1;param0"},
+		{"{input}|{res}|{cnn}|{status}|{res0}", "i", "cnn", "success", []string{"r0", "r1"}, "i|r0\tr1|cnn|success|r0"},
 	}
 
 	for _, c := range cases {
