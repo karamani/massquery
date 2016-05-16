@@ -206,12 +206,6 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 
 		resErr = func() error {
 
-			var (
-				container []sql.RawBytes
-				pointers  []interface{}
-				values    []string
-			)
-
 			rows, err := db.Query(query)
 			if err != nil {
 				return err
@@ -225,19 +219,19 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 
 			colsCount := len(cols)
 
-			for rows.Next() {
+			pointers := make([]interface{}, colsCount)
+			container := make([]sql.RawBytes, colsCount)
+			for i := range pointers {
+				pointers[i] = &container[i]
+			}
 
-				pointers = make([]interface{}, colsCount)
-				container = make([]sql.RawBytes, colsCount)
-				for i := range pointers {
-					pointers[i] = &container[i]
-				}
+			for rows.Next() {
 
 				if err := rows.Scan(pointers...); err != nil {
 					return err
 				}
 
-				values = make([]string, colsCount)
+				values := make([]string, colsCount)
 				for i, elem := range container {
 					values[i] = ""
 					if elem != nil {
