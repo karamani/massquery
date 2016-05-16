@@ -122,18 +122,18 @@ func processOneQuery(cnn, query string, isExec bool, input string) {
 	}
 }
 
-func parameterizedString(s, tpl string, params []string) (res string) {
-	res = s
+func parameterizedString(s, tpl string, params []string) string {
+	res := s
 	for i, param := range params {
 		t := fmt.Sprintf(tpl, i)
 		res = strings.Replace(res, t, param, -1)
 	}
-	return
+	return res
 }
 
-func formatRes(format, input, cnn, status string, values []string) (res string) {
+func formatRes(format, input, cnn, status string, values []string) string {
 
-	res = strings.Join(values, "\t")
+	res := strings.Join(values, "\t")
 
 	if len(format) > 0 {
 		s := format
@@ -151,13 +151,22 @@ func formatRes(format, input, cnn, status string, values []string) (res string) 
 		res = s
 	}
 
-	return
+	return res
 }
 
 func printRes(s string) {
 	if len(s) > 0 {
 		fmt.Println(s)
 	}
+}
+
+func createScanContainer(size int) ([]interface{}, []sql.RawBytes) {
+	pointers := make([]interface{}, size)
+	container := make([]sql.RawBytes, size)
+	for i := range pointers {
+		pointers[i] = &container[i]
+	}
+	return pointers, container
 }
 
 func runQuery(connectionString, query string, isExec bool) (res [][]string, resErr error) {
@@ -219,11 +228,7 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 
 			colsCount := len(cols)
 
-			pointers := make([]interface{}, colsCount)
-			container := make([]sql.RawBytes, colsCount)
-			for i := range pointers {
-				pointers[i] = &container[i]
-			}
+			pointers, container := createScanContainer(colsCount)
 
 			for rows.Next() {
 
