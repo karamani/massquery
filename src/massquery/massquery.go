@@ -55,11 +55,6 @@ func main() {
 			Usage:       "output format",
 			Destination: &formatArg,
 		},
-		cli.BoolFlag{
-			Name:        "fake",
-			Usage:       "fake mode",
-			Destination: &fakeMode,
-		},
 	}
 
 	app.Action = func(c *cli.Context) {
@@ -173,10 +168,6 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 
 	resErr = db.Ping()
 	if resErr != nil {
-		return
-	}
-
-	if fakeMode {
 		return
 	}
 
