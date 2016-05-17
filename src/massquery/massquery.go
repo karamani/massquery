@@ -160,15 +160,6 @@ func printRes(s string) {
 	}
 }
 
-func createScanContainer(size int) ([]interface{}, []sql.RawBytes) {
-	pointers := make([]interface{}, size)
-	container := make([]sql.RawBytes, size)
-	for i := range pointers {
-		pointers[i] = &container[i]
-	}
-	return pointers, container
-}
-
 func runQuery(connectionString, query string, isExec bool) (res [][]string, resErr error) {
 
 	res, resErr = nil, nil
@@ -226,25 +217,12 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 				return err
 			}
 
-			colsCount := len(cols)
-
-			pointers, container := createScanContainer(colsCount)
-
+			container := newScanContainer(len(cols))
 			for rows.Next() {
-
-				if err := rows.Scan(pointers...); err != nil {
+				if err := rows.Scan(container.Pointers...); err != nil {
 					return err
 				}
-
-				values := make([]string, colsCount)
-				for i, elem := range container {
-					values[i] = ""
-					if elem != nil {
-						values[i] = string(elem)
-					}
-				}
-
-				res = append(res, values)
+				res = append(res, container.AsStrings())
 			}
 
 			if err := rows.Err(); err != nil {
