@@ -161,7 +161,6 @@ func runQuery(connectionString, query string, isExec bool) (res [][]string, resE
 
 	db, resErr := sql.Open("mysql", connectionString)
 	if resErr != nil {
-		log.Println(resErr.Error())
 		return
 	}
 	defer db.Close()
