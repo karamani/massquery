@@ -110,10 +110,11 @@ func processOneQuery(cnn, query string, isExec bool, input string) {
 	if err != nil {
 		log.Println(err.Error())
 		printRes(formatRes(formatArg, input, cnn, "error", nil))
-	} else {
-		for _, resrow := range res {
-			printRes(formatRes(formatArg, input, cnn, "success", resrow))
-		}
+		return
+	}
+
+	for _, resrow := range res {
+		printRes(formatRes(formatArg, input, cnn, "success", resrow))
 	}
 }
 
