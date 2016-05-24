@@ -20,7 +20,6 @@ var (
 	connectionStringArg string
 	formatArg           string
 	fakeMode            bool
-	isExec              bool
 )
 
 func main() {
@@ -59,18 +58,12 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 
-		if len(connectionStringArg) == 0 {
-			log.Println("[ERROR] 'cnn' arg is required")
-			return
-		}
-
-		if len(queryArg) == 0 && len(execArg) == 0 {
-			log.Println("[ERROR] It should be one of the arguments: 'query' or 'exec'")
-			return
+		if err := validateArgs(); err != nil {
+			log.Fatalf("Arguments isn't valid: %s", err.Error())
 		}
 
 		query := queryArg
-		isExec = len(query) == 0
+		isExec := len(query) == 0
 		if isExec {
 			query = execArg
 		}
@@ -103,6 +96,20 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+func validateArgs() error {
+
+	var err error
+
+	switch {
+	case len(connectionStringArg) == 0:
+		err = fmt.Errorf("'cnn' arg is required")
+	case len(queryArg) == 0 && len(execArg) == 0:
+		err = fmt.Errorf("it should be one of the arguments 'query' or 'exec'")
+	}
+
+	return err
 }
 
 func processOneQuery(cnn, query string, isExec bool, input string) {

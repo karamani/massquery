@@ -4,13 +4,13 @@
 		{
 			"importpath": "github.com/codegangsta/cli",
 			"repository": "https://github.com/codegangsta/cli",
-			"revision": "71f57d300dd6a780ac1856c005c4b518cfd498ec",
+			"revision": "1ce6660d5de65095e81443b119d50585984142c7",
 			"branch": "master"
 		},
 		{
 			"importpath": "github.com/go-sql-driver/mysql",
 			"repository": "https://github.com/go-sql-driver/mysql",
-			"revision": "1421caf44f6464fd2ee8de694c7508ee13f92964",
+			"revision": "7ebe0a500653eeb1859664bed5e48dec1e164e73",
 			"branch": "master"
 		},
 		{
