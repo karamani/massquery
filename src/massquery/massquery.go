@@ -107,6 +107,8 @@ func validateArgs() error {
 		err = fmt.Errorf("'cnn' arg is required")
 	case len(queryArg) == 0 && len(execArg) == 0:
 		err = fmt.Errorf("it should be one of the arguments 'query' or 'exec'")
+	case len(queryArg) > 0 && len(execArg) > 0:
+		err = fmt.Errorf("it should be only one of the arguments 'query' or 'exec'")
 	}
 
 	return err
@@ -145,10 +147,16 @@ func formatRes(format, input, cnn, status string, values []string) string {
 		s = strings.Replace(s, "\\t", "\t", -1)
 		s = strings.Replace(s, "\\n", "\n", -1)
 
-		s = strings.Replace(s, "{input}", input, -1)
-		s = strings.Replace(s, "{res}", res, -1)
-		s = strings.Replace(s, "{cnn}", cnn, -1)
-		s = strings.Replace(s, "{status}", status, -1)
+		rpl := map[string]string{
+			"{input}":  input,
+			"{res}":    res,
+			"{cnn}":    cnn,
+			"{status}": status,
+		}
+		for initial, new := range rpl {
+			s = strings.Replace(s, initial, new, -1)
+		}
+
 		s = parameterizedString(s, "{res%d}", values)
 
 		res = s

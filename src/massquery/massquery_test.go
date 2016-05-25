@@ -45,3 +45,40 @@ func TestFormatRes(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateArgs(t *testing.T) {
+
+	var err error
+
+	connectionStringArg = ""
+	err = validateArgs()
+	if err == nil || err.Error() != "'cnn' arg is required" {
+		t.Errorf("validateArgs: 'cnn' is empty")
+	}
+
+	connectionStringArg = "validcnn"
+
+	queryArg, execArg = "", ""
+	err = validateArgs()
+	if err == nil || err.Error() != "it should be one of the arguments 'query' or 'exec'" {
+		t.Errorf("validateArgs: 'query' & 'exec' is empty")
+	}
+
+	queryArg, execArg = "validquery", ""
+	err = validateArgs()
+	if err != nil {
+		t.Errorf("validateArgs: valid 'query' fail")
+	}
+
+	queryArg, execArg = "", "validexec"
+	err = validateArgs()
+	if err != nil {
+		t.Errorf("validateArgs: valid 'exec' fail")
+	}
+
+	queryArg, execArg = "validquery", "validexec"
+	err = validateArgs()
+	if err == nil || err.Error() != "it should be only one of the arguments 'query' or 'exec'" {
+		t.Errorf("validateArgs: given both args 'exec' & 'query'")
+	}
+}
