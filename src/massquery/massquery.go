@@ -19,7 +19,6 @@ var (
 	execArg             string
 	connectionStringArg string
 	formatArg           string
-	fakeMode            bool
 )
 
 func main() {
