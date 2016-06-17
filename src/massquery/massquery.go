@@ -55,7 +55,7 @@ func main() {
 		},
 	}
 
-	app.Action = func(c *cli.Context) {
+	app.Action = func(c *cli.Context) error {
 
 		if err := validateArgs(); err != nil {
 			log.Fatalf("Arguments isn't valid: %s", err.Error())
@@ -69,7 +69,7 @@ func main() {
 
 		if !iostreams.StdinReady() {
 			processOneQuery(connectionStringArg, query, isExec, "")
-			return
+			return nil
 		}
 
 		// this func's called for each stdin's row
@@ -92,6 +92,8 @@ func main() {
 		if err := iostreams.ProcessStdin(process); err != nil {
 			log.Panicln(err.Error())
 		}
+
+		return nil
 	}
 
 	app.Run(os.Args)
