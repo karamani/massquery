@@ -1,0 +1,16 @@
+hash: 6561fc63fd2323df1979fc7eaba73e35f51cde9d8f2df7e9a812260cda4e7aa7
+updated: 2016-09-14T17:33:26.385640987+03:00
+imports:
+- name: github.com/codegangsta/cli
+  version: c723b19a84af34d905773672ffa1b8ead802e505
+  repo: https://github.com/codegangsta/cli
+- name: github.com/go-sql-driver/mysql
+  version: 0b58b37b664c21f3010e836f1b931e1d0b0b0685
+  repo: https://github.com/go-sql-driver/mysql
+- name: github.com/karamani/iostreams
+  version: 15473c4143dc614c01989543257135e854e5bf5f
+  repo: https://github.com/karamani/iostreams
+- name: gopkg.in/yaml.v2
+  version: 31c299268d302dd0aa9a0dcf765a3d58971ac83f
+  repo: https://gopkg.in/yaml.v2
+testImports: []

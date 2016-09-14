@@ -1,0 +1,10 @@
+package: github.com/karamani/massquery
+import:
+- package: github.com/codegangsta/cli
+  repo: https://github.com/codegangsta/cli
+- package: github.com/go-sql-driver/mysql
+  repo: https://github.com/go-sql-driver/mysql
+- package: github.com/karamani/iostreams
+  repo: https://github.com/karamani/iostreams
+- package: gopkg.in/yaml.v2
+  repo: https://gopkg.in/yaml.v2

@@ -1,4 +1,5 @@
 *.swp
-vendor/src
+*.swo
+vendor
 pkg
 bin

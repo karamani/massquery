@@ -1,0 +1,7 @@
+#!/bin/bash
+
+docker run --rm -it -v "$PWD":/usr/src/massquery -w /usr/src/massquery karamani/gobuild:1.6.2-1 gofmt -w src/massquery
+docker run --rm -it -v "$PWD":/usr/src/massquery -w /usr/src/massquery karamani/gobuild:1.6.2-1 go tool vet src/massquery/*.go
+docker run --rm -it -v "$PWD":/usr/src/massquery -w /usr/src/massquery karamani/gobuild:1.6.2-1 golint src/massquery
+docker run --rm -it -v "$PWD":/usr/src/massquery -w /usr/src/massquery karamani/gobuild:1.6.2-1 gb test
+docker run --rm -it -v "$PWD":/usr/src/massquery -w /usr/src/massquery karamani/gobuild:1.6.2-1 gb build
