@@ -14,6 +14,9 @@ import (
 )
 
 var (
+	Version string
+
+	// global arguments
 	debugMode           bool
 	queryArg            string
 	execArg             string
@@ -25,6 +28,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "massquery"
 	app.Usage = "massquery"
+	app.Version = Version
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:        "debug",
